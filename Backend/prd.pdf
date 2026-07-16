@@ -1,0 +1,73 @@
+ApplyPilot - Product Requirements Document (PRD)
+
+Vision
+Help job seekers spend less time searching and applying for jobs by using AI to discover opportunities, personalize applications, and automate repetitive tasks while keeping users in control.
+
+Problem Statement
+Job seekers spend hours searching across multiple job sites, reading repetitive descriptions, filling the same forms, uploading resumes repeatedly, and manually tracking applications.
+
+Goal
+Create an AI-powered assistant that finds matching jobs, personalizes resumes, generates cover letters, assists with applications on supported platforms, tracks applications, and saves time.
+
+Target Users
+Primary: Software Engineers, Designers, Product Managers, Marketing Professionals, Remote Job Seekers.
+Secondary: Students, Fresh Graduates, Career Switchers, International Applicants.
+
+Success Metrics
+Jobs applied per user, interview rate, resume match score, time saved, DAU, WAU retention, premium conversion.
+
+Core Features (MVP)
+• User Profile
+• AI Job Discovery
+• AI Job Matching
+• Resume Manager
+• AI Resume Optimization
+• AI Cover Letter Generator
+• Job Dashboard
+• Application Tracker
+• AI Activity Feed
+• AI Task Queue
+
+Automation
+Search jobs, open supported application pages, fill profile information, upload resumes, generate answers where appropriate, respect platform policies, and request confirmation where required.
+
+Dashboard
+Applications Today, Jobs Found, High Match Jobs, Interviews, Resume Score.
+
+Search Filters
+Location, Remote, Salary, Company, Experience, Skills, Job Type, Visa Sponsorship, Industry.
+
+Analytics
+Applications per day, response rate, interview rate, offer rate, top platforms, average match score.
+
+Notifications
+Notify users about matching jobs, review-required applications, recruiter responses, interview schedules, and resume optimization.
+
+User Flow
+Login → Create Profile → Upload Resume → Set Preferences → AI Finds Jobs → AI Scores Jobs → User Review (if needed) → Submit → Track.
+
+Non-Functional Requirements
+Fast dashboard, encrypted storage, secure authentication, HTTPS, queue-based processing, retries, monitoring.
+
+Tech Stack
+Frontend: Next.js, React, TypeScript, Tailwind CSS, TanStack Query.
+Backend: Node.js, NestJS/Express.
+Database: PostgreSQL + Drizzle ORM.
+Auth: Supabase Auth/Clerk.
+Storage: S3/Supabase.
+Queue: Redis + BullMQ.
+Automation: Playwright.
+AI: OpenAI or Gemini.
+
+Future Features
+Chrome Extension, Recruiter Discovery, Referral Finder, Salary Benchmarking, Company Research, Email & Calendar Integration, Mobile App, AI Career Coach.
+
+Risks
+Automation restrictions, changing application forms, anti-bot protections, ensuring AI-generated content accurately reflects user qualifications.
+
+MVP Scope
+Included: Auth, Profile, Resume Upload, Job Discovery, AI Matching, Resume Optimization, Cover Letters, Tracker, Task Queue, Analytics.
+Excluded: Mobile App, Interview Preparation, Recruiter CRM, Referral Marketplace, Team Features.
+
+Product Vision
+Build an AI-powered platform that helps users discover better opportunities, personalize applications, and dramatically reduce repetitive job application work.

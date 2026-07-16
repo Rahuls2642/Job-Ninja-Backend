@@ -15,6 +15,34 @@
       "when": 1784127728802,
       "tag": "0001_far_human_torch",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784129337269,
+      "tag": "0002_chilly_lionheart",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784182727955,
+      "tag": "0003_tearful_exiles",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784185619452,
+      "tag": "0004_orange_boom_boom",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784205056454,
+      "tag": "0005_curvy_wolverine",
+      "breakpoints": true
     }
   ]
 }

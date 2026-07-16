@@ -5,6 +5,8 @@ import { LoginDto } from "../dto/login.dto";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
 import { ConfigService } from "@nestjs/config";
+import { db } from "../../../database/drizzle";
+import { profiles } from "../../../database/schema/profiles";
 
 @Injectable()
 export class AuthService {
@@ -12,7 +14,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async register(dto: RegisterDto) {
     const existingUser = await this.usersService.findByEmail(dto.email);
@@ -34,6 +36,19 @@ export class AuthService {
       experience: dto.experience,
       preferredRole: dto.preferredRole,
       salaryExpectation: dto.salaryExpectation,
+    });
+
+    // Automatically create a profile for the user
+    await db.insert(profiles).values({
+      userId: newUser.id,
+      fullName: dto.fullName,
+      avatarUrl: dto.avatarUrl,
+      linkedinUrl: dto.linkedinUrl,
+      githubUrl: dto.githubUrl,
+      portfolioUrl: dto.portfolioUrl,
+      preferredRole: dto.preferredRole,
+      salaryExpectation: dto.salaryExpectation,
+      preferredLocation: dto.location,
     });
 
     const { password, refreshToken, ...userWithoutSecrets } = newUser;
@@ -99,7 +114,7 @@ export class AuthService {
 
   private async generateTokens(userId: string, email: string) {
     const payload = { sub: userId, email };
-    
+
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         expiresIn: "15m",
