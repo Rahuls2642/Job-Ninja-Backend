@@ -21,10 +21,20 @@ export class ResumeAnalyzerService {
 
       if (mimeType === "application/pdf") {
         console.log("[ResumeAnalyzerService] Parsing PDF file...");
-        const uint8Array = new Uint8Array(buffer);
-        const parser = new pdf.PDFParse(uint8Array);
-        const parsed = await parser.getText();
-        return parsed.text || "";
+        try {
+          const uint8Array = new Uint8Array(buffer);
+          const parser = new pdf.PDFParse(uint8Array);
+          const parsed = await parser.getText();
+          return parsed.text || "";
+        } catch (pdfError) {
+          console.warn(`[ResumeAnalyzerService] PDF parsing failed (${(pdfError as Error).message}). Falling back to raw text conversion.`);
+          const rawText = buffer.toString("utf8");
+          // If it contains legible text, return it
+          if (rawText.trim().length > 0 && !rawText.includes("\u0000")) {
+            return rawText;
+          }
+          throw pdfError;
+        }
       } else if (
         mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
         mimeType === "application/docx" ||

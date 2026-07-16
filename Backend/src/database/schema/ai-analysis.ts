@@ -1,9 +1,9 @@
-import { pgTable, uuid, integer, text, jsonb, timestamp, unique } from "drizzle-orm/pg-core";
+import { pgTable, uuid, integer, jsonb, timestamp } from "drizzle-orm/pg-core";
 import { users } from "./users";
 import { resumes } from "./resumes";
 import { jobs } from "./jobs";
 
-export const aiJobAnalysis = pgTable("ai_job_analysis", {
+export const aiAnalysis = pgTable("ai_analysis", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id")
     .notNull()
@@ -15,13 +15,8 @@ export const aiJobAnalysis = pgTable("ai_job_analysis", {
     .notNull()
     .references(() => jobs.id, { onDelete: "cascade" }),
   overallScore: integer("overall_score").notNull(),
-  strengths: jsonb("strengths").notNull(),
-  missingSkills: jsonb("missing_skills").notNull(),
-  suggestions: jsonb("suggestions").notNull(),
-  summary: text("summary").notNull(), // Stores stringified JSON summary
+  reasons: jsonb("reasons").notNull(), // list of strings
+  missingSkills: jsonb("missing_skills").notNull(), // list of strings
+  suggestions: jsonb("suggestions").notNull(), // list of strings
   createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => {
-  return [
-    unique("ai_job_analysis_resume_id_job_id_key").on(table.resumeId, table.jobId)
-  ];
 });

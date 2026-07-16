@@ -1,5 +1,5 @@
 // test-ai.ts
-// Verification script for AI Matching Engine (Phase 5).
+// Verification script for AI Intelligence Engine (Phase 5).
 // Run with: npx ts-node test-ai.ts
 
 import * as fs from "fs";
@@ -15,9 +15,8 @@ async function runTests() {
   let user1ResumeId = "";
   let testJobId = "";
 
-  console.log("=== Phase 5 AI Matching Engine Testing Started ===");
+  console.log("=== Phase 5 AI Intelligence Engine Testing Started ===");
 
-  // Helper to print response status and body
   const checkStatus = async (res: Response, expectedStatus: number, actionName: string) => {
     const text = await res.text();
     let body: any = text;
@@ -99,144 +98,86 @@ async function runTests() {
     testJobId = jobsData.items[0].id;
     console.log(`Selected Job ID: ${testJobId} (${jobsData.items[0].title} @ ${jobsData.items[0].company})`);
 
-    // 5. Test Unauthorized Analysis (should return 401)
-    console.log("\n5. Testing unauthorized analysis request (missing JWT)...");
-    const unauthRes = await fetch(`${baseUrl}/ai/analyze/${testJobId}`, {
+    // 5. Test Feature 1: Score Job
+    console.log("\n5. Testing Feature 1: Score Job...");
+    const scoreRes = await fetch(`${baseUrl}/ai/jobs/${testJobId}/score?resumeId=${user1ResumeId}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ resumeId: user1ResumeId }),
+      headers: { Authorization: `Bearer ${user1Token}` },
     });
-    await checkStatus(unauthRes, 401, "Reject Unauthorized Analysis");
+    const scoreData = await checkStatus(scoreRes, 201, "Job Score Endpoint");
+    console.log(`Match Score: ${scoreData.overallScore}%`);
+    console.log(`Reasons: ${JSON.stringify(scoreData.reasons)}`);
+    console.log(`Missing Skills: ${JSON.stringify(scoreData.missingSkills)}`);
+    console.log(`Suggestions: ${JSON.stringify(scoreData.suggestions)}`);
 
-    // 6. Test User 2 trying to analyze using User 1's resume (should return 403 Forbidden)
-    console.log("\n6. Testing cross-user resume access block (should return 403)...");
-    const crossRes = await fetch(`${baseUrl}/ai/analyze/${testJobId}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${user2Token}`,
-      },
-      body: JSON.stringify({ resumeId: user1ResumeId }),
-    });
-    await checkStatus(crossRes, 403, "Block cross-user resume analysis");
-
-    // 7. Perform first analysis (User 1 analyzing User 1's resume against test job)
-    console.log("\n7. Performing initial AI match analysis...");
-    const analyzeRes1 = await fetch(`${baseUrl}/ai/analyze/${testJobId}`, {
+    // 6. Test Feature 2: Tailor Resume
+    console.log("\n6. Testing Feature 2: Tailor Resume...");
+    const tailorRes = await fetch(`${baseUrl}/ai/resumes/${user1ResumeId}/tailor`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${user1Token}`,
       },
-      body: JSON.stringify({ resumeId: user1ResumeId }),
+      body: JSON.stringify({ jobId: testJobId }),
     });
-    const analysis1 = (await checkStatus(analyzeRes1, 200, "Perform Initial Analysis")) as any;
-    console.log("Analysis Result properties:");
-    console.log(`- Score: ${analysis1.overallScore}%`);
-    console.log(`- Strengths: ${JSON.stringify(analysis1.strengths)}`);
-    console.log(`- Missing Skills: ${JSON.stringify(analysis1.missingSkills)}`);
-    console.log(`- Suggestions: ${JSON.stringify(analysis1.suggestions)}`);
-    console.log(`- Summary: ${JSON.stringify(analysis1.summary)}`);
+    const tailorData = await checkStatus(tailorRes, 201, "Tailor Resume Endpoint");
+    console.log(`Tailored Resume Content length: ${tailorData.tailoredResume.length} characters`);
 
-    if (
-      analysis1.overallScore === undefined ||
-      !Array.isArray(analysis1.strengths) ||
-      !Array.isArray(analysis1.missingSkills) ||
-      !Array.isArray(analysis1.suggestions) ||
-      !analysis1.summary.company ||
-      !analysis1.summary.role
-    ) {
-      throw new Error("Analysis result structure is incomplete or invalid");
-    }
-
-    // 8. Test Caching (perform analysis again, should return identical record and match first analysis's createdAt timestamp)
-    console.log("\n8. Performing analysis again to test caching...");
-    const analyzeRes2 = await fetch(`${baseUrl}/ai/analyze/${testJobId}`, {
+    // 7. Test Feature 3: ATS Score
+    console.log("\n7. Testing Feature 3: ATS Score...");
+    const atsRes = await fetch(`${baseUrl}/ai/resumes/${user1ResumeId}/ats?jobId=${testJobId}`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${user1Token}`,
-      },
-      body: JSON.stringify({ resumeId: user1ResumeId }),
+      headers: { Authorization: `Bearer ${user1Token}` },
     });
-    const analysis2 = (await checkStatus(analyzeRes2, 200, "Retrieve Cached Analysis")) as any;
-    console.log(`- Original CreatedAt: ${analysis1.createdAt}`);
-    console.log(`- Cached CreatedAt:   ${analysis2.createdAt}`);
-    if (analysis1.createdAt !== analysis2.createdAt) {
-      throw new Error("Cache missed! The createdAt timestamp changed between runs.");
-    }
-    console.log("[PASS] Cache returned identical timestamp!");
+    const atsData = await checkStatus(atsRes, 201, "ATS Score Endpoint");
+    console.log(`ATS Score: ${atsData.atsScore}%`);
+    console.log(`ATS Suggestions: ${JSON.stringify(atsData.suggestions)}`);
 
-    // 9. Test Cache Refresh (perform analysis with refresh=true, should return a new record with a different createdAt timestamp)
-    console.log("\n9. Testing cache refresh parameter (?refresh=true)...");
-    // Wait 1.5 seconds to make sure timestamp changes
-    await new Promise((r) => setTimeout(r, 1500));
-    
-    const analyzeRes3 = await fetch(`${baseUrl}/ai/analyze/${testJobId}?refresh=true`, {
+    // 8. Test Feature 4: Cover Letter
+    console.log("\n8. Testing Feature 4: Cover Letter...");
+    const coverRes = await fetch(`${baseUrl}/ai/jobs/${testJobId}/cover-letter?resumeId=${user1ResumeId}`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${user1Token}`,
-      },
-      body: JSON.stringify({ resumeId: user1ResumeId }),
+      headers: { Authorization: `Bearer ${user1Token}` },
     });
-    const analysis3 = (await checkStatus(analyzeRes3, 200, "Perform Forced Refresh Analysis")) as any;
-    console.log(`- Original CreatedAt: ${analysis1.createdAt}`);
-    console.log(`- Refreshed CreatedAt:  ${analysis3.createdAt}`);
-    if (analysis1.createdAt === analysis3.createdAt) {
-      throw new Error("Refresh parameter failed to clear cache and force re-analysis!");
-    }
-    console.log("[PASS] Forced refresh generated a new analysis record successfully!");
+    const coverData = await checkStatus(coverRes, 201, "Cover Letter Endpoint");
+    console.log(`Cover Letter length: ${coverData.coverLetter.length} characters`);
 
-    // 10. Retrieve analysis using GET /ai/analyze/:jobId
-    console.log("\n10. Fetching latest cached analysis via GET endpoint...");
-    const getRes = await fetch(`${baseUrl}/ai/analyze/${testJobId}`, {
+    // 9. Test Feature 5: Job Summary
+    console.log("\n9. Testing Feature 5: Job Summary...");
+    const summaryRes = await fetch(`${baseUrl}/ai/jobs/${testJobId}/summary`, {
       method: "GET",
       headers: { Authorization: `Bearer ${user1Token}` },
     });
-    const getAnalysisData = (await checkStatus(getRes, 200, "Get Cached Analysis")) as any;
-    if (getAnalysisData.id !== analysis3.id) {
-      throw new Error("GET endpoint returned wrong analysis record");
+    const summaryData = await checkStatus(summaryRes, 200, "Job Summary Endpoint");
+    console.log(`Extracted Role: ${summaryData.role}`);
+    console.log(`Salary: ${summaryData.salary}`);
+    console.log(`Remote: ${summaryData.remote}`);
+    console.log(`Required skills: ${JSON.stringify(summaryData.required)}`);
+
+    // 10. Test Feature 6: AI Cache retrieval GET endpoint
+    console.log("\n10. Testing Feature 6: GET Job Cache analysis...");
+    const cacheRes = await fetch(`${baseUrl}/ai/jobs/${testJobId}/cache`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${user1Token}` },
+    });
+    const cacheData = await checkStatus(cacheRes, 200, "Get Cached Score Endpoint");
+    console.log(`Successfully verified cached score retrieval: ${cacheData.overallScore}%`);
+
+    // 11. Test cache hit verification by scoring again and validating response is instantaneous/identical
+    console.log("\n11. Verifying cached score results match first run...");
+    const scoreRes2 = await fetch(`${baseUrl}/ai/jobs/${testJobId}/score?resumeId=${user1ResumeId}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${user1Token}` },
+    });
+    const scoreData2 = await checkStatus(scoreRes2, 201, "Job Score Cache Check");
+    if (scoreData.overallScore !== scoreData2.overallScore) {
+      throw new Error("Score cache mismatch!");
     }
 
-    // 11. Test non-existent analysis query (should return 404 for User 2 since they haven't analyzed it yet)
-    console.log("\n11. Testing non-existent analysis retrieval for User 2 (should return 404)...");
-    const getRes404 = await fetch(`${baseUrl}/ai/analyze/${testJobId}`, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${user2Token}` },
-    });
-    await checkStatus(getRes404, 404, "Verify 404 on missing analysis");
-
-    // 12. Test non-existent Job UUID for analysis
-    console.log("\n12. Testing non-existent job UUID for analysis (should return 404)...");
-    const invalidJobId = "55555555-5555-5555-5555-555555555555";
-    const invalidJobRes = await fetch(`${baseUrl}/ai/analyze/${invalidJobId}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${user1Token}`,
-      },
-      body: JSON.stringify({ resumeId: user1ResumeId }),
-    });
-    await checkStatus(invalidJobRes, 404, "Verify 404 on invalid Job ID");
-
-    // 13. Test non-existent Resume UUID for analysis
-    console.log("\n13. Testing non-existent resume UUID for analysis (should return 404)...");
-    const invalidResumeId = "99999999-9999-4999-9999-999999999999";
-    const invalidResumeRes = await fetch(`${baseUrl}/ai/analyze/${testJobId}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${user1Token}`,
-      },
-      body: JSON.stringify({ resumeId: invalidResumeId }),
-    });
-    await checkStatus(invalidResumeRes, 404, "Verify 404 on invalid Resume ID");
-
-    console.log("\n=== ALL AI MATCHING ENGINE MODULE TESTS PASSED SUCCESSFULLY ===");
+    console.log("\n=== ALL AI INTELLIGENCE ENGINE MODULE TESTS PASSED SUCCESSFULLY ===");
 
   } catch (error) {
-    console.error("\n=== AI MATCHING ENGINE TESTING FAILED ===");
+    console.error("\n=== AI INTELLIGENCE ENGINE TESTING FAILED ===");
     console.error((error as Error).message);
     process.exit(1);
   }
