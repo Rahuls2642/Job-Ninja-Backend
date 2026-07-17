@@ -6,6 +6,9 @@ import { ProfileModule } from "./modules/profile/profile.module";
 import { ResumeModule } from "./modules/resume/resume.module";
 import { JobsModule } from "./modules/jobs/jobs.module";
 import { AiModule } from "./modules/ai/ai.module";
+import { ApplicationsModule } from "./modules/applications/applications.module";
+import { AutomationModule } from "./modules/automation/automation.module";
+import { AgentModule } from "./modules/agent/agent.module";
 
 @Module({
     imports: [
@@ -18,6 +21,9 @@ import { AiModule } from "./modules/ai/ai.module";
         ResumeModule,
         JobsModule,
         AiModule,
+        ApplicationsModule,
+        AutomationModule,
+        AgentModule,
     ],
 })
 export class AppModule { }

@@ -362,4 +362,21 @@ export class AIOrchestratorService {
     }
     return analysisList[0];
   }
+
+  async generateCustomAnswer(question: string, profile: any, application: any): Promise<string> {
+    const systemPrompt = `You are an AI assistant helping a user apply for a job. Formulate a short, professional response (1-2 sentences) to the following application question based on the user's profile details. Respond in JSON format with an "answer" field.`;
+    const userPrompt = `Question: "${question}"\nUser Name: ${profile.fullName}\nBio: ${profile.bio || "N/A"}\nExperience: ${profile.yearsOfExperience || "N/A"} years\nPreferred Role: ${profile.preferredRole || "N/A"}`;
+    try {
+      const result = await this.queryLLM(systemPrompt, userPrompt, () => ({
+        answer: `I have experience matching the requirements for this role as part of my career as a ${profile.preferredRole || "professional"}.`
+      }));
+      return result.answer || result.response || Object.values(result)[0] || "";
+    } catch {
+      return `I am highly interested and qualified for this position.`;
+    }
+  }
+
+  async queryAgent(systemPrompt: string, userPrompt: string, fallbackMock: () => any): Promise<any> {
+    return this.queryLLM(systemPrompt, userPrompt, fallbackMock);
+  }
 }
