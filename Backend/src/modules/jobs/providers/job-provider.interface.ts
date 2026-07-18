@@ -22,5 +22,5 @@ export interface ParsedJob {
 
 export interface JobProvider {
   getName(): string;
-  fetchJobs(boardToken: string): Promise<ParsedJob[]>;
+  fetchJobs(boardToken: string, keyword?: string): Promise<ParsedJob[]>;
 }

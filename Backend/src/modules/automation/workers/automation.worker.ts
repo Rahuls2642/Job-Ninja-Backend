@@ -45,9 +45,29 @@ export class AutomationWorker implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    const host = this.configService.get<string>("REDIS_HOST") || "127.0.0.1";
-    const port = parseInt(this.configService.get<string>("REDIS_PORT") || "6379", 10);
-    const password = this.configService.get<string>("REDIS_PASSWORD") || undefined;
+    const redisUrl = this.configService.get<string>("REDIS_URL");
+    let connectionOption: any;
+    if (redisUrl) {
+      try {
+        const parsed = new URL(redisUrl);
+        connectionOption = {
+          host: parsed.hostname,
+          port: parseInt(parsed.port || "6379", 10),
+          username: parsed.username || undefined,
+          password: parsed.password ? decodeURIComponent(parsed.password) : undefined,
+          tls: parsed.protocol === "rediss:" ? {} : undefined,
+        };
+      } catch (e) {
+        this.logger.error(`Failed to parse REDIS_URL: ${e.message}`);
+        connectionOption = { host: "127.0.0.1", port: 6379 };
+      }
+    } else {
+      connectionOption = {
+        host: this.configService.get<string>("REDIS_HOST") || "127.0.0.1",
+        port: parseInt(this.configService.get<string>("REDIS_PORT") || "6379", 10),
+        password: this.configService.get<string>("REDIS_PASSWORD") || undefined,
+      };
+    }
 
     this.worker = new Worker(
       "automation",
@@ -55,13 +75,18 @@ export class AutomationWorker implements OnModuleInit, OnModuleDestroy {
         return this.processJob(job);
       },
       {
-        connection: { host, port, password },
+        connection: connectionOption,
         concurrency: 2, // Allow 2 concurrent automations
       }
     );
 
     this.worker.on("failed", (job, err) => {
       this.logger.error(`Job ${job?.id} failed: ${err.message}`);
+    });
+
+    // Handle connection errors gracefully to prevent crashing
+    this.worker.on("error", (err) => {
+      this.logger.error(`Worker connection error: ${err.message}`);
     });
 
     this.logger.log("BullMQ Automation Worker initialized");

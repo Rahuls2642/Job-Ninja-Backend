@@ -13,11 +13,27 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly configService: ConfigService) {}
 
   onModuleInit() {
-    const host = this.configService.get<string>("REDIS_HOST") || "127.0.0.1";
-    const port = parseInt(this.configService.get<string>("REDIS_PORT") || "6379", 10);
-    const password = this.configService.get<string>("REDIS_PASSWORD") || undefined;
-
-    this.redisConnection = { host, port, password };
+    const redisUrl = this.configService.get<string>("REDIS_URL");
+    if (redisUrl) {
+      try {
+        const parsed = new URL(redisUrl);
+        this.redisConnection = {
+          host: parsed.hostname,
+          port: parseInt(parsed.port || "6379", 10),
+          username: parsed.username || undefined,
+          password: parsed.password ? decodeURIComponent(parsed.password) : undefined,
+          tls: parsed.protocol === "rediss:" ? {} : undefined,
+        };
+      } catch (e) {
+        this.logger.error(`Failed to parse REDIS_URL: ${e.message}`);
+        this.redisConnection = { host: "127.0.0.1", port: 6379 };
+      }
+    } else {
+      const host = this.configService.get<string>("REDIS_HOST") || "127.0.0.1";
+      const port = parseInt(this.configService.get<string>("REDIS_PORT") || "6379", 10);
+      const password = this.configService.get<string>("REDIS_PASSWORD") || undefined;
+      this.redisConnection = { host, port, password };
+    }
 
     const queueNames = ["automation", "priority-automation", "retry-automation"];
 
@@ -41,6 +57,15 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
 
       this.queues.set(name, queue);
       this.queueEvents.set(name, events);
+
+      // Handle connection errors gracefully to prevent crashing
+      queue.on("error", (err) => {
+        this.logger.error(`Queue "${name}" connection error: ${err.message}`);
+      });
+      events.on("error", (err) => {
+        this.logger.error(`QueueEvents "${name}" connection error: ${err.message}`);
+      });
+
       this.logger.log(`Initialized BullMQ queue: ${name}`);
     }
   }

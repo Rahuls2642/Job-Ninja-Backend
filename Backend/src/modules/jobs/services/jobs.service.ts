@@ -7,6 +7,11 @@ import { SearchJobsDto } from "../dto/search-jobs.dto";
 import { GreenhouseProvider } from "../providers/greenhouse.provider";
 import { LeverProvider } from "../providers/lever.provider";
 import { AshbyProvider } from "../providers/ashby.provider";
+import { LinkedinProvider } from "../providers/linkedin.provider";
+import { NaukriProvider } from "../providers/naukri.provider";
+import { RemotiveProvider } from "../providers/remotive.provider";
+import { TheMuseProvider } from "../providers/themuse.provider";
+import { ArbeitnowProvider } from "../providers/arbeitnow.provider";
 
 @Injectable()
 export class JobsService implements OnApplicationBootstrap {
@@ -14,6 +19,11 @@ export class JobsService implements OnApplicationBootstrap {
     private readonly greenhouseProvider: GreenhouseProvider,
     private readonly leverProvider: LeverProvider,
     private readonly ashbyProvider: AshbyProvider,
+    private readonly linkedinProvider: LinkedinProvider,
+    private readonly naukriProvider: NaukriProvider,
+    private readonly remotiveProvider: RemotiveProvider,
+    private readonly themuseProvider: TheMuseProvider,
+    private readonly arbeitnowProvider: ArbeitnowProvider,
   ) {}
 
   // Automatically sync mock jobs on application boot so the database has jobs for search testing
@@ -23,6 +33,16 @@ export class JobsService implements OnApplicationBootstrap {
       await this.syncJobs("greenhouse", "mock-stripe");
       await this.syncJobs("lever", "mock-figma");
       await this.syncJobs("ashby", "mock-linear");
+      await this.syncJobs("linkedin", "mock-linkedin");
+      await this.syncJobs("naukri", "mock-naukri");
+      
+      console.log("[JobsService] Fetching real live jobs from free APIs...");
+      await this.syncJobs("remotive", "public");
+      await this.syncJobs("themuse", "public");
+      await this.syncJobs("arbeitnow", "public");
+      
+      // Skip syncing real 'airbnb' jobs here to prevent flooding the database 
+      // with hundreds of live roles and burying the mock jobs.
       console.log("[JobsService] Initial jobs synced successfully!");
     } catch (err) {
       console.error("[JobsService] Failed to sync initial mock jobs:", err);
@@ -30,6 +50,13 @@ export class JobsService implements OnApplicationBootstrap {
   }
 
   async searchJobs(dto: SearchJobsDto) {
+    // DYNAMIC LIVE SEARCH: If user provides a keyword, fetch live jobs from the internet before querying the DB.
+    if (dto.keyword) {
+      console.log(`[JobsService] Performing LIVE dynamic search for keyword: "${dto.keyword}"`);
+      // Run in the background or wait for it. We'll wait so the user immediately gets results.
+      await this.syncJobs("remotive", "public", dto.keyword);
+    }
+
     const conditions = [];
 
     // Filter active jobs only
@@ -188,8 +215,10 @@ export class JobsService implements OnApplicationBootstrap {
     return list;
   }
 
-  async syncJobs(providerName: string, boardToken: string) {
-    let parsedJobs = [];
+  async syncJobs(providerName: string, boardToken: string, keyword?: string) {
+    console.log(`[JobsService] Syncing jobs from ${providerName} (board: ${boardToken}${keyword ? `, keyword: ${keyword}` : ''})...`);
+    
+    let parsedJobs: ParsedJob[] = [];
 
     if (providerName === "greenhouse") {
       parsedJobs = await this.greenhouseProvider.fetchJobs(boardToken);
@@ -197,6 +226,16 @@ export class JobsService implements OnApplicationBootstrap {
       parsedJobs = await this.leverProvider.fetchJobs(boardToken);
     } else if (providerName === "ashby") {
       parsedJobs = await this.ashbyProvider.fetchJobs(boardToken);
+    } else if (providerName === "linkedin") {
+      parsedJobs = await this.linkedinProvider.fetchJobs(boardToken, keyword);
+    } else if (providerName === "naukri") {
+      parsedJobs = await this.naukriProvider.fetchJobs(boardToken, keyword);
+    } else if (providerName === "remotive") {
+      parsedJobs = await this.remotiveProvider.fetchJobs(boardToken, keyword);
+    } else if (providerName === "themuse") {
+      parsedJobs = await this.themuseProvider.fetchJobs(boardToken, keyword);
+    } else if (providerName === "arbeitnow") {
+      parsedJobs = await this.arbeitnowProvider.fetchJobs(boardToken, keyword);
     } else {
       throw new BadRequestException(`Unknown provider: ${providerName}`);
     }

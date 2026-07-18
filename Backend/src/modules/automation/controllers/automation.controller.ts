@@ -26,6 +26,13 @@ export class AutomationController {
     return this.automationService.startAutomation(user.id, dto);
   }
 
+  @Get("tasks")
+  @ApiOperation({ summary: "List all automation tasks for the authenticated user" })
+  @ApiResponse({ status: 200, description: "List of automation tasks retrieved successfully" })
+  async findAll(@GetUser() user: any) {
+    return this.taskService.findAll(user.id);
+  }
+
   @Get("tasks/:id")
   @ApiOperation({ summary: "Get current status and progress of an automation task" })
   @ApiParam({ name: "id", description: "Automation Task ID" })

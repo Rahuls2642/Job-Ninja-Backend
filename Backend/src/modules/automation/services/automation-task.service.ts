@@ -122,4 +122,12 @@ export class AutomationTaskService {
       .where(eq(automationScreenshots.taskId, taskId))
       .orderBy(desc(automationScreenshots.createdAt));
   }
+
+  async findAll(userId: string) {
+    return await db
+      .select()
+      .from(automationTasks)
+      .where(eq(automationTasks.userId, userId))
+      .orderBy(desc(automationTasks.createdAt));
+  }
 }
